@@ -50,9 +50,6 @@ https://github.com/user-attachments/assets/a1560db1-e376-421b-8249-b4883612ac74
 
 
 
-https://github.com/user-attachments/assets/99dd4b98-c7ac-427e-b1cc-ba3a6445a809
-
-
 
 
 
