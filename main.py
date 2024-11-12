@@ -1,88 +1,87 @@
-import tkinter as tk
+import sys
 import math
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QVBoxLayout, QWidget, QGridLayout
+from PyQt5.QtCore import Qt  # Добавьте этот импорт
 
+class Calculator(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Научный калькулятор")
+        self.setGeometry(100, 100, 300, 400)
 
-class Calculator:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Научный калькулятор")
-        self.expression = ""
-        self.input_var = tk.StringVar()
+        # Создаем строку для отображения ввода/вывода
+        self.input_line = QLineEdit(self)
+        self.input_line.setFixedHeight(40)
+        self.input_line.setReadOnly(True)
+        self.input_line.setAlignment(Qt.AlignRight)  # Теперь это работает
+        self.input_line.setStyleSheet("font-size: 20px;")
 
-        # Настройки цвета
-        self.root.configure(bg="#EAEAE5")  
+        # Основной виджет и компоновка
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.input_line)
 
-        # Создание интерфейса
-        self.create_widgets()
-
-    def create_widgets(self):
-        input_frame = tk.Frame(self.root, bg="#EAEAE5")
-        input_frame.pack(pady=10)
-
-        input_field = tk.Entry(input_frame, textvariable=self.input_var, font=('Arial', 16), width=30, bd=5,
-                               insertwidth=2, borderwidth=4)
-        input_field.grid(row=0, column=0, padx=5)
-        input_field.configure(bg="#FFFFFF")  # Белый фон для поля ввода
-
-        button_frame = tk.Frame(self.root, bg="#EAEAE5")
-        button_frame.pack()
-
+        # Добавление кнопок
+        button_layout = QGridLayout()
         buttons = [
-            ('7', 1, 0), ('8', 1, 1), ('9', 1, 2), ('/', 1, 3),
-            ('4', 2, 0), ('5', 2, 1), ('6', 2, 2), ('*', 2, 3),
-            ('1', 3, 0), ('2', 3, 1), ('3', 3, 2), ('-', 3, 3),
-            ('0', 4, 0), ('C', 4, 1), ('=', 4, 2), ('+', 4, 3),
-            ('sin', 5, 0), ('cos', 5, 1), ('tan', 5, 2),
-            ('(', 5, 3), (')', 6, 0), ('pi', 6, 1)
+            ('7', 0, 0), ('8', 0, 1), ('9', 0, 2), ('/', 0, 3),
+            ('4', 1, 0), ('5', 1, 1), ('6', 1, 2), ('*', 1, 3),
+            ('1', 2, 0), ('2', 2, 1), ('3', 2, 2), ('-', 2, 3),
+            ('0', 3, 0), ('C', 3, 1), ('=', 3, 2), ('+', 3, 3),
+            ('sin', 4, 0), ('cos', 4, 1), ('tan', 4, 2), ('pi', 4, 3)
         ]
 
-        for (text, row, column) in buttons:
-            button = tk.Button(button_frame, text=text, padx=15, pady=15, font=('Arial', 14),
-                               command=lambda t=text: self.on_button_click(t))
-            button.grid(row=row, column=column, padx=5, pady=5)
-            button.configure(bg="#C6A57A", fg="#FFFFFF", relief='groove', bd=2)
-            button.bind("<Enter>", lambda e: e.widget.configure(bg="#D8B69B"))  # Цвет при наведении
-            button.bind("<Leave>", lambda e: e.widget.configure(bg="#C6A57A"))  # Цвет при уходе
+        # Создаем кнопки и добавляем их в сетку
+        for (text, row, col) in buttons:
+            button = QPushButton(text)
+            button.setFixedSize(60, 60)
+            button_layout.addWidget(button, row, col)
+            button.clicked.connect(lambda ch, text=text: self.on_button_click(text))
 
-        # Угол кнопок
-        for btn in button_frame.winfo_children():
-            btn.config(width=4, height=2)
-            btn.config(borderwidth=0, highlightthickness=0)
-            btn.config(activebackground="#D8B69B")  # Цвет при нажатии
+        # Добавляем layout для кнопок в основной layout
+        main_layout.addLayout(button_layout)
+
+        # Настройка центрального виджета
+        container = QWidget()
+        container.setLayout(main_layout)
+        self.setCentralWidget(container)
+
+        # Переменная для хранения выражения
+        self.expression = ""
 
     def on_button_click(self, char):
         if char == 'C':
+            # Очистка экрана
             self.expression = ""
-            self.input_var.set("")
+            self.input_line.setText("")
         elif char == '=':
+            # Вычисление результата
             self.calculate_result()
+        elif char == 'pi':
+            # Вставка значения числа π
+            self.expression += str(math.pi)
+            self.input_line.setText(self.expression)
+        elif char in ('sin', 'cos', 'tan'):
+            # Обработка тригонометрических функций
+            self.expression += f"math.{char}("
+            self.input_line.setText(self.expression)
         else:
+            # Добавляем нажатую кнопку к выражению
             self.expression += char
-            self.input_var.set(self.expression)
+            self.input_line.setText(self.expression)
 
     def calculate_result(self):
         try:
-            # Заменяем 'pi' на значение числа
-            expression = self.expression.replace('pi', str(math.pi))
-
-            # Обработка тригонометрических функций
-            if 'sin' in expression:
-                expression = expression.replace('sin', 'math.sin')
-            if 'cos' in expression:
-                expression = expression.replace('cos', 'math.cos')
-            if 'tan' in expression:
-                expression = expression.replace('tan', 'math.tan')
-
-            # Вычисление результата
-            result = eval(expression)
-            self.input_var.set(result)
+            # Вычисление выражения с использованием eval
+            result = eval(self.expression)
+            self.input_line.setText(str(result))
             self.expression = str(result)  # сохраняем результат для дальнейших вычислений
-        except Exception as e:
-            self.input_var.set("Ошибка")
+        except Exception:
+            self.input_line.setText("Ошибка")
             self.expression = ""
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    calculator = Calculator(root)
-    root.mainloop()
+    app = QApplication(sys.argv)
+    calculator = Calculator()
+    calculator.show()
+    sys.exit(app.exec_())
