@@ -38,6 +38,7 @@ ______
 
 ### Дизайн калькулятора 
 
-![image](https://github.com/user-attachments/assets/ad5933b2-d93f-4e8f-ab56-2e2670a7b62e)
+<img width="298" alt="Снимок экрана 2024-11-12 в 19 05 21" src="https://github.com/user-attachments/assets/29919d83-31cd-4528-93da-0c492daedde0">
+
 
 
