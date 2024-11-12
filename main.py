@@ -1,164 +1,133 @@
-import pygame
 import random
+import sys
+from sympy import mod_inverse, isprime
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt5.QtGui import QFont  # Импортируем QFont
 
-# Инициализация Pygame
-pygame.init()
+# Функция для генерации простого числа заданного размера (в битах)
+def generate_prime(bits):
+    while True:
+        prime_candidate = random.getrandbits(bits)
+        if isprime(prime_candidate):
+            return prime_candidate
 
-# Настройка экрана
-WIDTH = 800
-HEIGHT = 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Арканоид')
+# Генерация ключей для RSA
+def generate_rsa_keys(bits=128):
+    p = generate_prime(bits)
+    q = generate_prime(bits)
+    n = p * q
+    phi_n = (p - 1) * (q - 1)
+    e = 65537
+    if phi_n % e == 0:
+        e = 3
+    d = mod_inverse(e, phi_n)
+    return (e, n), (d, n)
 
-# Загрузка фона
-background = pygame.image.load('1.jpg')
-background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+# Шифрование
+def rsa_encrypt(message, public_key):
+    e, n = public_key
+    message_int = int.from_bytes(message.encode('utf-8'), byteorder='big')
+    cipher_int = pow(message_int, e, n)
+    return cipher_int
 
-# Настройки цвета
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)  # Красный цвет для второго шарика
-DARK_PURPLE = (75, 0, 130)  # Темно-фиолетовый цвет для блоков
+# Дешифрование
+def rsa_decrypt(cipher_int, private_key):
+    d, n = private_key
+    message_int = pow(cipher_int, d, n)
+    message_bytes = message_int.to_bytes((message_int.bit_length() + 7) // 8, byteorder='big')
+    return message_bytes.decode('utf-8')
 
-# Параметры платформы
-PADDLE_WIDTH = 150
-PADDLE_HEIGHT = 15
-paddle_speed = 10
+# Главный класс приложения
+class RSACipherApp(QWidget):
+    def __init__(self):
+        super().__init__()
 
-# Параметры шарика
-ball_radius = 20
+        # Генерация ключей RSA
+        self.public_key, self.private_key = generate_rsa_keys()
 
-# Блоки
-block_width = (WIDTH - 5 * 10) // 4  # Четыре блока в ряд
-block_height = 60
+        # Инициализация интерфейса
+        self.init_ui()
 
+    def init_ui(self):
+        # Основной layout
+        main_layout = QVBoxLayout()
 
-def create_blocks():
-    return [pygame.Rect(5 + i * (block_width + 10), 5 + j * (block_height + 10), block_width, block_height)
-            for i in range(4) for j in range(3)]
+        # Поля для ввода и вывода
+        font_size = 14
 
+        # Создание объекта QFont
+        font = QFont("Arial", font_size)
 
-# Функция для перезапуска игры
-def reset_game():
-    global paddle, ball1, ball2, ball1_speed_x, ball1_speed_y, ball2_speed_x, ball2_speed_y, blocks
-    paddle = pygame.Rect(WIDTH // 2 - PADDLE_WIDTH // 2, HEIGHT - 30, PADDLE_WIDTH, PADDLE_HEIGHT)
+        # Ввод сообщения для шифрования
+        self.message_label = QLabel("Введите сообщение для шифрования:")
+        self.message_label.setFont(font)  # Устанавливаем шрифт
+        self.entry_message = QLineEdit()
+        self.entry_message.setFont(font)  # Устанавливаем шрифт
+        main_layout.addWidget(self.message_label)
+        main_layout.addWidget(self.entry_message)
 
-    # Инициализация первого шарика
-    ball1 = pygame.Rect(WIDTH // 2, HEIGHT // 2, ball_radius, ball_radius)
-    ball1_speed_x = 8 * random.choice((1, -1))
-    ball1_speed_y = -8
+        # Зашифрованное сообщение
+        self.cipher_label = QLabel("Зашифрованное сообщение:")
+        self.cipher_label.setFont(font)  # Устанавливаем шрифт
+        self.entry_cipher = QLineEdit()
+        self.entry_cipher.setFont(font)  # Устанавливаем шрифт
+        self.entry_cipher.setReadOnly(True)
+        main_layout.addWidget(self.cipher_label)
+        main_layout.addWidget(self.entry_cipher)
 
-    # Инициализация второго шарика
-    ball2 = pygame.Rect(WIDTH // 2 + 100, HEIGHT // 2, ball_radius, ball_radius)
-    ball2_speed_x = 8 * random.choice((1, -1))
-    ball2_speed_y = -8
+        # Расшифрованное сообщение
+        self.decrypted_label = QLabel("Расшифрованное сообщение:")
+        self.decrypted_label.setFont(font)  # Устанавливаем шрифт
+        self.entry_decrypted = QLineEdit()
+        self.entry_decrypted.setFont(font)  # Устанавливаем шрифт
+        self.entry_decrypted.setReadOnly(True)
+        main_layout.addWidget(self.decrypted_label)
+        main_layout.addWidget(self.entry_decrypted)
 
-    blocks = create_blocks()  # Глобальная переменная
+        # Кнопки для шифрования и дешифрования
+        button_layout = QHBoxLayout()
 
+        self.btn_encrypt = QPushButton("Зашифровать")
+        self.btn_encrypt.setFont(font)  # Устанавливаем шрифт
+        self.btn_encrypt.clicked.connect(self.encrypt_message)
+        button_layout.addWidget(self.btn_encrypt)
 
-# Функция отображения текста
-def draw_text(text, size, color, x, y):
-    font = pygame.font.Font(None, size)
-    surface = font.render(text, True, color)
-    rect = surface.get_rect(center=(x, y))
-    screen.blit(surface, rect)
+        self.btn_decrypt = QPushButton("Расшифровать")
+        self.btn_decrypt.setFont(font)  # Устанавливаем шрифт
+        self.btn_decrypt.clicked.connect(self.decrypt_message)
+        button_layout.addWidget(self.btn_decrypt)
 
+        main_layout.addLayout(button_layout)
 
-# Основной игровой цикл
-def main_game():
-    global ball1_speed_x, ball1_speed_y, ball2_speed_x, ball2_speed_y, blocks  # Используем глобальные переменные
-    running = True
-    game_over = False
+        # Устанавливаем главный layout
+        self.setLayout(main_layout)
 
-    while running:
-        pygame.time.delay(30)
+        # Настройки окна
+        self.setWindowTitle("RSA Шифратор/Дешифратор")
+        self.setGeometry(100, 100, 600, 300)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+    def encrypt_message(self):
+        message = self.entry_message.text()
+        if not message:
+            QMessageBox.warning(self, "Ошибка", "Введите сообщение!")
+            return
+        cipher_text = rsa_encrypt(message, self.public_key)
+        self.entry_cipher.setText(str(cipher_text))
 
-        # Управление платформой
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] and paddle.left > 0:
-            paddle.left -= paddle_speed
-        if keys[pygame.K_RIGHT] and paddle.right < WIDTH:
-            paddle.right += paddle_speed
+    def decrypt_message(self):
+        cipher_text = self.entry_cipher.text()
+        if not cipher_text:
+            QMessageBox.warning(self, "Ошибка", "Введите зашифрованное сообщение!")
+            return
+        try:
+            decrypted_message = rsa_decrypt(int(cipher_text), self.private_key)
+            self.entry_decrypted.setText(decrypted_message)
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", "Невозможно расшифровать сообщение!")
 
-        # Если игра не окончена, продолжаем обновлять шарики и блоки
-        if not game_over:
-            # Логика движения первого шарика
-            ball1.x += ball1_speed_x
-            ball1.y += ball1_speed_y
-
-            # Логика движения второго шарика
-            ball2.x += ball2_speed_x
-            ball2.y += ball2_speed_y
-
-            # Отскок от стен для первого шарика
-            if ball1.left <= 0 or ball1.right >= WIDTH:
-                ball1_speed_x = -ball1_speed_x
-            if ball1.top <= 0:
-                ball1_speed_y = -ball1_speed_y
-
-            # Отскок от стен для второго шарика
-            if ball2.left <= 0 or ball2.right >= WIDTH:
-                ball2_speed_x = -ball2_speed_x
-            if ball2.top <= 0:
-                ball2_speed_y = -ball2_speed_y
-
-            # Отскок от платформы для обоих шариков
-            if ball1.colliderect(paddle):
-                ball1_speed_y = -ball1_speed_y
-            if ball2.colliderect(paddle):
-                ball2_speed_y = -ball2_speed_y
-
-            # Логика блоков для первого шарика
-            new_blocks = []
-            for block in blocks:
-                if ball1.colliderect(block):
-                    ball1_speed_y = -ball1_speed_y
-                elif ball2.colliderect(block):  # Логика блоков для второго шарика
-                    ball2_speed_y = -ball2_speed_y
-                else:
-                    new_blocks.append(block)
-            blocks = new_blocks
-
-            # Если один из шариков упал ниже экрана
-            if ball1.bottom >= HEIGHT or ball2.bottom >= HEIGHT:
-                game_over = True
-
-        # Рисование объектов
-        screen.blit(background, (0, 0))  # Рисуем фон
-        pygame.draw.rect(screen, WHITE, paddle)  # Платформа
-        pygame.draw.ellipse(screen, WHITE, ball1)  # Первый шарик — белый
-        pygame.draw.ellipse(screen, RED, ball2)  # Второй шарик — красный
-        for block in blocks:
-            pygame.draw.rect(screen, DARK_PURPLE, block)  # Темно-фиолетовые блоки
-
-        # Если игра окончена, выводим сообщение и ждем нажатия клавиши
-        if game_over:
-            draw_text("Вы проиграли", 64, WHITE, WIDTH // 2, HEIGHT // 2 - 50)
-            draw_text("Начните игру занова", 32, WHITE, WIDTH // 2, HEIGHT // 2 + 50)
-            pygame.display.flip()
-
-            # Ждем нажатия пробела для перезапуска игры
-            waiting = True
-            while waiting:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                        waiting = False
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                        reset_game()  # Перезапуск игры
-                        game_over = False
-                        waiting = False
-
-        # Обновление экрана
-        pygame.display.flip()
-
-
-# Перезапуск игры
-reset_game()
-main_game()
-
-# Завершение Pygame
-pygame.quit()
+# Запуск приложения
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = RSACipherApp()
+    window.show()
+    sys.exit(app.exec_())
