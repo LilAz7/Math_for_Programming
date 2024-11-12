@@ -34,25 +34,21 @@
 # Практика 5
 ______
 
-## В данной практике выполнены 2 работы по двумерным массивам 
-
-## 1 Задание
-## Визуализация волнового фронта 2 вариант
-
-## 2 Задание
-## Рисование спирали  2 вариант
-
-<img width="637" alt="Снимок экрана 2024-11-12 в 22 21 30" src="https://github.com/user-attachments/assets/a4e6c171-e59a-45d3-b5ed-ac9373993ee1">
+## В данной практике реализовано консольное приложиение "Морской Бой" 
 
 
-<img width="598" alt="Снимок экрана 2024-11-12 в 22 20 48" src="https://github.com/user-attachments/assets/3b132f68-adae-49ab-9dc4-4771ad03c0c9">
+<img width="800" alt="Снимок экрана 2024-11-12 в 22 34 18" src="https://github.com/user-attachments/assets/5e52e7c4-a94b-4609-ae8f-6f3b929cd50b">
+
+
 
 ______
 
 
 
 
-https://github.com/user-attachments/assets/887d4307-8c35-4b73-924b-696afa07534b
+
+https://github.com/user-attachments/assets/99dd4b98-c7ac-427e-b1cc-ba3a6445a809
+
 
 
 
