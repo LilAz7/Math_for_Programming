@@ -1,7 +1,6 @@
 import pygame
 import random
 
-# Инициализация Pygame
 pygame.init()
 
 # Настройка экрана
