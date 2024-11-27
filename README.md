@@ -45,6 +45,7 @@ ______
 
 
 
+<img width="497" alt="Снимок экрана 2024-11-27 в 23 48 25" src="https://github.com/user-attachments/assets/dfeb0aaa-3239-4cfa-9ce9-0fd4cc367eb7">
 
 
 
@@ -57,6 +58,8 @@ ______
 
 
 
+
+https://github.com/user-attachments/assets/8b340fac-27b5-46ae-a00e-1067634c1e8c
 
 
 
