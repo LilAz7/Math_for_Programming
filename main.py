@@ -1,193 +1,162 @@
 import pygame
 import random
-import heapq
+import math
 
-WINDOW_SIZE = 500
-GRID_SIZE = 20
-ROWS = WINDOW_SIZE // GRID_SIZE
-COLS = WINDOW_SIZE // GRID_SIZE
+# Инициализация Pygame
+pygame.init()
 
+# Размер экрана
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Гонка по кругу")
+
+# Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-BLUE = (0, 0, 255)
-GREEN = (0, 255, 0)
 RED = (255, 0, 0)
-ORANGE = (255, 165, 0)
-CYAN = (0, 191, 255)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
-PURPLE = (128, 0, 128)
+LIGHT_GRAY = (211, 211, 211)
+DARK_GRAY = (169, 169, 169)
 
-WALL = 1
-OPEN = 0
-DANGER = 2
-TELEPORT = 3
-FREEZE = 4
+# Параметры круга
+CENTER_X, CENTER_Y = WIDTH // 2, HEIGHT // 2  # Центр круга
+RADIUS = 200  # Радиус круга
 
-pygame.init()
-screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-pygame.display.set_caption("Pathfinding with Obstacles")
-font = pygame.font.Font(None, 36)
+# Загрузка иконок для персонажей
+icon_size = 30
+icons = {
+    "Таракан": pygame.Surface((icon_size, icon_size)),
+    "Собака": pygame.Surface((icon_size, icon_size)),
+    "Дед Мороз": pygame.Surface((icon_size, icon_size)),
+    "Человечек": pygame.Surface((icon_size, icon_size)),
+}
 
-maze = [[WALL for _ in range(COLS)] for _ in range(ROWS)]
-start_pos = (1, 1)
-end_pos = (COLS - 2, ROWS - 2)
+# Рисуем простые иконки (например, цвета для простоты)
+icons["Таракан"].fill(RED)
+icons["Собака"].fill(GREEN)
+icons["Дед Мороз"].fill(BLUE)
+icons["Человечек"].fill(YELLOW)
 
-def generate_maze(x, y):
-    directions = [(0, 2), (2, 0), (0, -2), (-2, 0)]
-    random.shuffle(directions)
-    maze[y][x] = OPEN
-    for dx, dy in directions:
-        nx, ny = x + dx, y + dy
-        if 0 <= nx < COLS and 0 <= ny < ROWS and maze[ny][nx] == WALL:
-            maze[ny][nx] = OPEN
-            maze[y + dy // 2][x + dx // 2] = OPEN
-            generate_maze(nx, ny)
+# Персонажи
+characters = [
+    {"name": "Таракан", "color": RED, "angle": random.uniform(0, 2 * math.pi), "speed": random.uniform(1, 3), "laps": 0,
+     "last_angle": 0},
+    {"name": "Собака", "color": GREEN, "angle": random.uniform(0, 2 * math.pi), "speed": random.uniform(1, 3),
+     "laps": 0, "last_angle": 0},
+    {"name": "Дед Мороз", "color": BLUE, "angle": random.uniform(0, 2 * math.pi), "speed": random.uniform(1, 3),
+     "laps": 0, "last_angle": 0},
+    {"name": "Человечек", "color": YELLOW, "angle": random.uniform(0, 2 * math.pi), "speed": random.uniform(1, 3),
+     "laps": 0, "last_angle": 0}
+]
 
-generate_maze(start_pos[0], start_pos[1])
-maze[start_pos[1]][start_pos[0]] = OPEN
-maze[end_pos[1]][end_pos[0]] = OPEN
+# Количество кругов для завершения гонки
+target_laps = 5
 
-def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+# Шрифт для текста
+font = pygame.font.SysFont(None, 36)
 
-def a_star_search(maze, start, end):
-    open_set = []
-    heapq.heappush(open_set, (0, start))
-    came_from = {}
-    g_score = {start: 0}
-    f_score = {start: heuristic(start, end)}
 
-    while open_set:
-        current = heapq.heappop(open_set)[1]
-        if current == end:
-            path = []
-            while current in came_from:
-                path.append(current)
-                current = came_from[current]
-            path.append(start)
-            path.reverse()
-            return path
+# Функция для отрисовки персонажа
+def draw_character(character):
+    x = CENTER_X + RADIUS * math.cos(character["angle"])
+    y = CENTER_Y + RADIUS * math.sin(character["angle"])
+    pygame.draw.circle(screen, character["color"], (int(x), int(y)), 15)
 
-        neighbors = [(current[0] + dx, current[1] + dy) for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]]
-        for neighbor in neighbors:
-            if 0 <= neighbor[0] < COLS and 0 <= neighbor[1] < ROWS and maze[neighbor[1]][neighbor[0]] != WALL:
-                tentative_g_score = g_score[current] + 1
-                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
+    # Отображаем иконку персонажа рядом с ним
+    icon_x = CENTER_X + RADIUS * math.cos(character["angle"]) - icon_size // 2
+    icon_y = CENTER_Y + RADIUS * math.sin(character["angle"]) - icon_size // 2
+    screen.blit(icons[character["name"]], (icon_x, icon_y))
 
-    return None
 
-optimal_path = a_star_search(maze, start_pos, end_pos)
+# Функция для отображения текста
+def display_text(text, x, y, color):
+    label = font.render(text, True, color)
+    screen.blit(label, (x, y))
 
-player_pos = list(start_pos)
-real_path = []
-steps_taken = 0
-game_won = False
-freeze_steps = 0
 
-def add_obstacles():
-    for _ in range(5):  # Опасные
-        x, y = random.randint(1, COLS - 2), random.randint(1, ROWS - 2)
-        if maze[y][x] == OPEN and (x, y) not in [start_pos, end_pos]:
-            maze[y][x] = DANGER
+# Функция для отрисовки трассы и линии старта
+def draw_track():
+    # Рисуем круг трассы
+    pygame.draw.circle(screen, LIGHT_GRAY, (CENTER_X, CENTER_Y), RADIUS, 10)
 
-    for _ in range(2):  # Телепорты
-        x, y = random.randint(1, COLS - 2), random.randint(1, ROWS - 2)
-        if maze[y][x] == OPEN and (x, y) not in [start_pos, end_pos]:
-            maze[y][x] = TELEPORT
+    # Рисуем шахматный стиль трассы (половинки чередуются)
+    for i in range(0, 360, 15):  # Шахматные полоски на окружности
+        angle_start = math.radians(i)
+        angle_end = math.radians(i + 15)
 
-    for _ in range(2):  # Замораживающие
-        x, y = random.randint(1, COLS - 2), random.randint(1, ROWS - 2)
-        if maze[y][x] == OPEN and (x, y) not in [start_pos, end_pos]:
-            maze[y][x] = FREEZE
+        x1 = CENTER_X + RADIUS * math.cos(angle_start)
+        y1 = CENTER_Y + RADIUS * math.sin(angle_start)
+        x2 = CENTER_X + RADIUS * math.cos(angle_end)
+        y2 = CENTER_Y + RADIUS * math.sin(angle_end)
 
-add_obstacles()
+        color = DARK_GRAY if (i // 15) % 2 == 0 else LIGHT_GRAY
+        pygame.draw.line(screen, color, (x1, y1), (x2, y2), 10)
 
-def draw_grid():
-    for y in range(ROWS):
-        for x in range(COLS):
-            color = WHITE if maze[y][x] == OPEN else BLACK
-            if maze[y][x] == DANGER:
-                color = RED
-            elif maze[y][x] == TELEPORT:
-                color = ORANGE
-            elif maze[y][x] == FREEZE:
-                color = CYAN
+    # Линия старта
+    pygame.draw.line(screen, BLACK, (CENTER_X - RADIUS, CENTER_Y), (CENTER_X + RADIUS, CENTER_Y), 5)
 
-            pygame.draw.rect(screen, color, (x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
-            if (x, y) == start_pos:
-                pygame.draw.rect(screen, BLUE, (x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-            if (x, y) == end_pos:
-                pygame.draw.rect(screen, GREEN, (x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-
-def move_player(dx, dy):
-    global freeze_steps, player_pos, steps_taken
-    if freeze_steps > 0:
-        freeze_steps -= 1
-        return
-
-    new_x = player_pos[0] + dx
-    new_y = player_pos[1] + dy
-
-    if 0 <= new_x < COLS and 0 <= new_y < ROWS and maze[new_y][new_x] != WALL:
-        player_pos[0] = new_x
-        player_pos[1] = new_y
-        real_path.append((new_x, new_y))
-        steps_taken += 1
-
-        handle_obstacle()
-
-def handle_obstacle():
-    global player_pos, freeze_steps
-    x, y = player_pos
-    if maze[y][x] == DANGER:
-        print("Опасное препятствие! Возврат на старт.")
-        player_pos = list(start_pos)
-    elif maze[y][x] == TELEPORT:
-        print("Телепорт!")
-        while True:
-            tx, ty = random.randint(1, COLS - 2), random.randint(1, ROWS - 2)
-            if maze[ty][tx] == OPEN:
-                player_pos = [tx, ty]
-                break
-    elif maze[y][x] == FREEZE:
-        print("Замораживающее препятствие! Заморозка на 3 хода.")
-        freeze_steps = 3
-
+# Главный игровой цикл
 running = True
 clock = pygame.time.Clock()
 
 while running:
     screen.fill(WHITE)
-    draw_grid()
 
-    if tuple(player_pos) == end_pos:
-        game_won = True
+    # Рисуем трассу
+    draw_track()
 
-    pygame.draw.rect(screen, BLUE, (player_pos[0] * GRID_SIZE, player_pos[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+    # Проверяем события
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-    if game_won:
-        text = font.render("Путь найден!", True, YELLOW)
-        screen.blit(text, (WINDOW_SIZE // 2 - text.get_width() // 2, WINDOW_SIZE // 2 - text.get_height() // 2))
-    else:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    move_player(0, -1)
-                elif event.key == pygame.K_DOWN:
-                    move_player(0, 1)
-                elif event.key == pygame.K_LEFT:
-                    move_player(-1, 0)
-                elif event.key == pygame.K_RIGHT:
-                    move_player(1, 0)
+    # Обновление состояния гонки
+    for character in characters:
+        # Замедляем скорость по мере прохождения кругов
+        character["speed"] = max(1, character["speed"] - 0.05 * character["laps"])  # Уменьшаем скорость
 
-    pygame.display.flip()
-    clock.tick(60)
+        # Двигаем персонажа по кругу
+        character["angle"] += character["speed"] * 0.01  # Увеличиваем угол на основе скорости
+        if character["angle"] > 2 * math.pi:
+            character["angle"] -= 2 * math.pi  # Если угол превышает 360 градусов, сбрасываем его
+
+        # Проверка, пересек ли персонаж стартовую линию (первый угол)
+        if character["angle"] < 0.1 and character["last_angle"] > 2 * math.pi - 0.1:  # Если прошло через 0 радиан
+            character["laps"] += 1
+            # Если количество кругов достигло заданного, останавливаем гонку для этого персонажа
+            if character["laps"] >= target_laps:
+                running = False  # Останавливаем игру, когда кто-то достигает 5 кругов
+
+            # Каждые несколько шагов случайным образом изменяем скорость и направление
+            if random.random() < 0.05:  # 5% шанс на изменение
+                character["speed"] = random.uniform(1, 2)  # Изменяем скорость и направление
+
+        # Обновляем последний угол для следующей итерации
+        character["last_angle"] = character["angle"]
+
+    # Отображаем персонажей
+    for character in characters:
+        draw_character(character)
+
+    # Отображаем статус гонки
+    leader = min(characters, key=lambda c: c["laps"])  # Лидер - игрок, который первым пересек стартовую линию
+    display_text("Текущий лидер: " + leader["name"], 20, 20, BLACK)
+    display_text("Кругов до победы: {}".format(target_laps), 20, 60, BLACK)
+
+    # Отображаем текущие круги каждого персонажа
+    for i, character in enumerate(characters):
+        display_text(f"{character['name']}: {character['laps']} кругов", 20, 120 + i * 40, character["color"])
+
+    pygame.display.update()
+    clock.tick(60)  # Ограничиваем кадры 60 в секунду
+
+# Выводим победителя после завершения гонки
+winner = max(characters, key=lambda c: c["laps"])
+display_text(f"Победитель: {winner['name']}", WIDTH // 2 - 100, HEIGHT // 2)
+pygame.display.update()
+pygame.time.wait(2000)  # Показываем победителя 2 секунды перед закрытием игры
 
 pygame.quit()
